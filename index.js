@@ -45,6 +45,8 @@ function init(source) {
     , bytes = []
     , term
 
+  var outgoing = null
+
   transition[_('"')] = transition[_("'")] = $begin_string
 
   for(var i = 0; i < 9; ++i) {
@@ -57,26 +59,26 @@ function init(source) {
   transition[_('\n')] =
   transition[_('\r')] = $whitespace
 
-  transition_unlikely[0xB] =
-  transition_unlikely[0xC] =
-  transition_unlikely[0xA0] =
-  transition_unlikely[_('\u1680')] =
-  transition_unlikely[_('\u180E')] =
-  transition_unlikely[_('\u2000')] =
-  transition_unlikely[_('\u2001')] =
-  transition_unlikely[_('\u2002')] =
-  transition_unlikely[_('\u2003')] =
-  transition_unlikely[_('\u2004')] =
-  transition_unlikely[_('\u2005')] =
-  transition_unlikely[_('\u2006')] =
-  transition_unlikely[_('\u2007')] =
-  transition_unlikely[_('\u2008')] =
-  transition_unlikely[_('\u2009')] =
-  transition_unlikely[_('\u200A')] =
-  transition_unlikely[_('\u202F')] =
-  transition_unlikely[_('\u205F')] =
-  transition_unlikely[_('\u3000')] =
-  transition_unlikely[_('\uFEFF')] = $whitespace
+  transition[0xB] =
+  transition[0xC] =
+  transition[0xA0] =
+  transition[_('\u1680')] =
+  transition[_('\u180E')] =
+  transition[_('\u2000')] =
+  transition[_('\u2001')] =
+  transition[_('\u2002')] =
+  transition[_('\u2003')] =
+  transition[_('\u2004')] =
+  transition[_('\u2005')] =
+  transition[_('\u2006')] =
+  transition[_('\u2007')] =
+  transition[_('\u2008')] =
+  transition[_('\u2009')] =
+  transition[_('\u200A')] =
+  transition[_('\u202F')] =
+  transition[_('\u205F')] =
+  transition[_('\u3000')] =
+  transition[_('\uFEFF')] = $whitespace
 
   var op_symbols = '~`!@#%^&*()-=+{}[]|;,.><?/'.split('')
 
@@ -108,19 +110,24 @@ function init(source) {
       , position: total
       , type: state.name
       , whitespace: null
+      , next: null
     }
     is_ws = state === $whitespace ||
       state === $line_comment ||
       state === $block_comment
 
     if(!is_ws) {
+      if(last) {
+        last.next = token
+      }
+
       last = token
       last.whitespace = pending_ws.slice()
       pending_ws.length = 0
 
-      ready = pending
-      pending = null
-      ready(null, last)
+      if(!outgoing) {
+        outgoing = last
+      }
     } else {
       pending_ws[pending_ws.length] = token
     }
@@ -133,11 +140,21 @@ function init(source) {
 
   // --- parsers
   function $start(byt) {
+    var returning
+
     if(byt === EOF) {
-      return $start
+      returning = $start
+    } else if(byt === 36) {
+      returning = $identifier
+    } else if(byt > 64 && byt < 91) {
+      returning = $identifier
+    } else if(byt > 96 && byt < 123) {
+      returning = $identifier
+    } else {
+      returning = transition[byt] || $identifier
     }
 
-    return transition[byt] || $identifier
+    return returning
   }
 
   function $maybe_regex_maybe_comment_maybe_op(byt) {
@@ -498,6 +515,13 @@ function init(source) {
     return $operator
   }
 
+  function $fastop(byt) {
+    accum(byt)
+    ++idx
+
+    return emit(null)
+  }
+
   // ---
   function read(ready) {
     if(ended) {
@@ -510,28 +534,18 @@ function init(source) {
 
     pending = ready
 
-    if(buf === null) {
-      return source.read(onbytes)
-    }
+    check()
+  }
 
-    onbytes(null, buf)
-
-    if(pending) {
-      var tmp = pending
-
-      pending = null
-
-      return read(tmp)
+  function run() {
+    for(var len = buf.length; buf && idx < len && pending; null) {
+      state = state(buf[idx])
     }
   }
 
   function onbytes(err, data) {
     if(err) {
       return pending(err)
-    }
-
-    if(buf === null) {
-      console.log('read', data.length)
     }
 
     if(data) {
@@ -541,16 +555,12 @@ function init(source) {
         , from
 
 
-      for(var len = buf.length; buf && idx < len && pending; null) {
-        state = state(buf[idx])
-      }
+      run()
 
       total += idx - start
-
-      if(idx === len) {
-        idx = 0
-        buf = null
-      }
+      buf = null
+      idx = 0
+      check()
     } else if(!ended) {
       state(EOF)
       ended = true
@@ -564,5 +574,27 @@ function init(source) {
 
       return
     }
+  }
+
+  function check() {
+    var ready = pending
+      , temp
+
+    if(outgoing) {
+      pending = null
+      temp = outgoing
+      outgoing = outgoing.next
+      temp.next = null
+
+      ready(null, temp)
+
+      return
+    }
+
+    if(buf === null) {
+      return source.read(onbytes)
+    }
+
+    onbytes(null, buf)
   }
 }
