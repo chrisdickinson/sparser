@@ -388,21 +388,24 @@ function init(source) {
       return $number
     }
 
-    if(byt === _('.')) {
+    // .
+    if(byt === 46) {
       accum(byt)
       ++idx
 
       return $decimal
     }
 
-    if(byt === _('e') || byt === _('E')) {
+    // eE
+    if(byt === 101 || byt === 69) {
       accum(byt)
       ++idx
 
       return $exponent_maybe_sign
     }
 
-    if(byt === _('x') || byt === _('X')) {
+    // xX
+    if(byt === 120 || byt === 88) {
       accum(byt)
       ++idx
 
