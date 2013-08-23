@@ -25,26 +25,28 @@ function drain(input) {
     while(sync) {
       sync = undefined
 
-      input.read(function read(err, data) {
-        ++saw
-
-        if(data === undefined) {
-          console.timeEnd('tokens')
-          console.log('%d tokens', saw)
-
-          return
-        }
-
-        if(sync !== undefined) {
-          //console.timeEnd('chunk')
-          //console.time('chunk')
-          consume()
-        } else {
-          sync = true
-        }
-      })
+      input.read(read)
 
       sync = !!sync
+    }
+
+    function read(err, data) {
+      ++saw
+
+      if(data === undefined) {
+        console.timeEnd('tokens')
+        console.log('%d tokens', saw)
+
+        return
+      }
+
+      if(sync !== undefined) {
+        //console.timeEnd('chunk')
+        //console.time('chunk')
+        consume()
+      } else {
+        sync = true
+      }
     }
   }
 }
