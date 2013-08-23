@@ -94,43 +94,44 @@ function init(source) {
     bytes[bytes.length] = byt
   }
 
-  function emit(err) {
-    if(err) {
-      ended = true
-
-      return pending(err)
-    }
-
-    var token
-      , is_ws
-      , ready
-
-    token = {
+  function make_token() {
+    return {
         data: bytes
       , position: total
       , type: state.name
       , whitespace: null
       , next: null
     }
-    is_ws = state === $whitespace ||
-      state === $line_comment ||
-      state === $block_comment
+  }
 
-    if(!is_ws) {
-      if(last) {
-        last.next = token
-      }
+  function emit_ws() {
+    pending_ws[pending_ws.length] = make_token()
 
-      last = token
-      last.whitespace = pending_ws.slice()
-      pending_ws.length = 0
+    return $start
+  }
 
-      if(!outgoing) {
-        outgoing = last
-      }
-    } else {
-      pending_ws[pending_ws.length] = token
+  function error(err) {
+    ended = true
+    pending(err)
+
+    return null
+  }
+
+  function emit() {
+    var token = {
+        data: bytes
+      , position: total
+      , type: state.name
+      , whitespace: null
+      , next: null
     }
+
+    last = last || {}
+    last.next = token
+    last = token
+    last.whitespace = pending_ws.slice()
+    pending_ws.length = 0
+    outgoing = outgoing || last
 
     curop = OPTREE
     bytes = []
@@ -203,7 +204,7 @@ function init(source) {
     }
 
     if(byt === EOF) {
-      return emit(new Error('unexpected eof'))
+      return error(new Error('unexpected eof'))
     }
 
     if(byt !== 47) {
@@ -224,7 +225,7 @@ function init(source) {
 
   function $line_comment(byt) {
     if(byt === 0x0A || byt === EOF) {
-      return emit(null)
+      return emit_ws(null)
     }
 
     accum(byt)
@@ -241,7 +242,7 @@ function init(source) {
     }
 
     if(byt === EOF) {
-      return emit(new Error('unexpected eof'))
+      return error(new Error('unexpected eof'))
     }
 
     accum(byt)
@@ -252,13 +253,13 @@ function init(source) {
 
   function $block_comment(byt) {
     if(byt === EOF) {
-      return emit(new Error('unexpected eof'))
+      return error(new Error('unexpected eof'))
     }
 
     if(byt === 47) {
       ++idx
 
-      return emit(null)
+      return emit_ws(null)
     }
 
     accum(byt)
@@ -501,7 +502,7 @@ function init(source) {
       return $whitespace
     }
 
-    return emit(null)
+    return emit_ws(null)
   }
 
   function $operator(byt) {
