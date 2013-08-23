@@ -11,7 +11,8 @@ console.timeEnd('init')
 drain(tks)
 
 function drain(input) {
-  var saw = 0
+  var hrtime = process.hrtime()
+    , saw = 0
 
   consume()
 
@@ -34,8 +35,12 @@ function drain(input) {
       ++saw
 
       if(data === undefined) {
-        console.timeEnd('tokens')
-        console.log('%d tokens', saw)
+        hrtime = process.hrtime(hrtime)
+        console.log(
+            '%dms %d tokens'
+          , hrtime[0] * 1e3 + hrtime[1] / 1e6
+          , saw
+        )
 
         return
       }
