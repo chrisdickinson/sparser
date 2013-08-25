@@ -1,6 +1,6 @@
 {
   "name": "sparser",
-  "version": "0.0.0",
+  "version": "0.0.1",
   "description": "streaming javascript tokenizer/parser",
   "main": "index.js",
   "directories": {
