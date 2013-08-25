@@ -1,0 +1,33 @@
+{
+  "name": "sparser",
+  "version": "0.0.0",
+  "description": "streaming javascript tokenizer/parser",
+  "main": "index.js",
+  "directories": {
+    "test": "test"
+  },
+  "dependencies": {
+    "esprima": "~1.0.3",
+    "fast-list": "~1.0.2",
+    "jsl": "~0.0.7",
+    "tape": "~1.0.4"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "node test/index.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/chrisdickinson/sparser.git"
+  },
+  "keywords": [
+    "jazz",
+    "script",
+    "parser"
+  ],
+  "author": "Chris Dickinson <chris@neversaw.us>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/chrisdickinson/sparser/issues"
+  }
+}
